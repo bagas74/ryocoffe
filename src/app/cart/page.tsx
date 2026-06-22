@@ -8,9 +8,8 @@ import Image from "next/image";
 import { supabase } from "@/utils/supabase";
 
 export default function CartPage() {
-  const { cartItems, clearCart } = useCart();
-
-  // State untuk menandai apakah tombol checkout sedang ditekan (loading)
+  // Ambil addToCart dan fungsi baru yaitu removeFromCart dari Context
+  const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const totalPrice = cartItems.reduce(
@@ -24,25 +23,22 @@ export default function CartPage() {
     minimumFractionDigits: 0,
   }).format(totalPrice);
 
-  // Fungsi Inti Transaksi Database
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
 
     setIsCheckingOut(true);
 
     try {
-      // 1. Catat Total Belanja ke tabel 'orders'
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert([{ total_amount: totalPrice, status: "pending" }])
-        .select("id") // Minta Supabase mengembalikan ID pesanannya
+        .select("id")
         .single();
 
       if (orderError) throw orderError;
 
       const orderId = orderData.id;
 
-      // 2. Siapkan data barang untuk dimasukkan ke tabel 'order_items'
       const itemsToInsert = cartItems.map((item) => ({
         order_id: orderId,
         product_id: item.id,
@@ -50,14 +46,12 @@ export default function CartPage() {
         price_at_time: item.price,
       }));
 
-      // 3. Masukkan semua barang sekaligus
       const { error: itemsError } = await supabase
         .from("order_items")
         .insert(itemsToInsert);
 
       if (itemsError) throw itemsError;
 
-      // 4. Jika sukses, kosongkan keranjang dan beri tahu pengguna
       clearCart();
       alert("Yeay! Pesanan berhasil dibuat! ☕ Terima kasih telah berbelanja.");
     } catch (error) {
@@ -72,7 +66,28 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#FDF8F5] font-sans pb-20">
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-stone-500 hover:text-[#4A3B32] mb-6 font-medium transition-colors w-fit px-4 py-2 rounded-xl hover:bg-stone-200/50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="w-5 h-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+            />
+          </svg>
+          Kembali ke Menu
+        </Link>
+
         <h1 className="text-3xl font-extrabold text-[#4A3B32] mb-8">
           Keranjang Belanja
         </h1>
@@ -98,7 +113,6 @@ export default function CartPage() {
                   className="py-6 flex items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    {/* Menggunakan Next.js Image */}
                     <div className="relative w-20 h-20 flex-shrink-0 bg-stone-100 rounded-xl overflow-hidden border border-stone-100">
                       <Image
                         src={item.image}
@@ -112,17 +126,39 @@ export default function CartPage() {
                       <h3 className="text-lg font-bold text-stone-800">
                         {item.name}
                       </h3>
-                      <p className="text-sm font-medium text-stone-500 mt-1">
+                      <p className="text-sm font-medium text-stone-400 mt-0.5">
                         {new Intl.NumberFormat("id-ID", {
                           style: "currency",
                           currency: "IDR",
                           minimumFractionDigits: 0,
-                        }).format(item.price)}{" "}
-                        x {item.quantity}
+                        }).format(item.price)}
                       </p>
+
+                      {/* CONTROLLER TAMBAH/KURANG KUANTITAS YANG BARU */}
+                      <div className="flex items-center gap-3 mt-3 bg-stone-50 border border-stone-100 rounded-xl w-fit p-1 shadow-inner">
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-stone-600 hover:bg-stone-200 active:scale-90 transition-all font-black text-sm border border-stone-200/60 shadow-sm"
+                          title="Kurangi jumlah"
+                        >
+                          —
+                        </button>
+                        <span className="w-6 text-center text-sm font-extrabold text-stone-800 select-none">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-stone-600 hover:bg-stone-200 active:scale-90 transition-all font-black text-sm border border-stone-200/60 shadow-sm"
+                          title="Tambah jumlah"
+                        >
+                          ＋
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-lg font-extrabold text-[#C17A3E]">
+
+                  {/* Total harga dinamis per item sesuai kuantitas */}
+                  <div className="text-lg font-extrabold text-[#C17A3E] self-end sm:self-center pb-2 sm:pb-0">
                     {new Intl.NumberFormat("id-ID", {
                       style: "currency",
                       currency: "IDR",

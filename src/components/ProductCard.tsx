@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Product } from "../data/products";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
@@ -10,7 +11,13 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addToCart } = useCart();
+  // 1. Ambil cartItems dan removeFromCart dari context
+  const { cartItems, addToCart, removeFromCart } = useCart();
+  const [isAdded, setIsAdded] = useState(false);
+
+  // 2. Cek apakah produk ini sudah ada di keranjang
+  const cartItem = cartItems.find((item) => item.id === product.id);
+  const quantity = cartItem ? cartItem.quantity : 0;
 
   const formattedPrice = new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -18,15 +25,22 @@ export default function ProductCard({ product }: ProductCardProps) {
     minimumFractionDigits: 0,
   }).format(product.price);
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addToCart(product);
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 1000);
+  };
+
   return (
     <div className="group flex flex-col bg-white rounded-3xl p-3 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 ease-out border border-stone-100">
-      {/* Container Gambar */}
-      <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-stone-100 mb-5">
+      <div className="relative aspect-[4/5] w-full rounded-2xl overflow-hidden bg-stone-100 mb-5 relative">
         <Link
           href={`/product/${product.id}`}
           className="block w-full h-full relative"
         >
-          {/* Hapus fill, ganti dengan width dan height */}
           <Image
             src={product.image}
             alt={product.name}
@@ -35,35 +49,85 @@ export default function ProductCard({ product }: ProductCardProps) {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
           />
         </Link>
-        {/* Badge Kategori */}
+
         <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-extrabold text-[#C17A3E] uppercase tracking-widest shadow-sm pointer-events-none">
           {product.category}
         </span>
 
-        {/* Tombol Add to Cart */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            addToCart(product);
-          }}
-          className="absolute bottom-3 right-3 bg-[#4A3B32] text-white p-3.5 rounded-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out hover:bg-[#C17A3E] shadow-lg"
-          title="Tambah ke Keranjang"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="currentColor"
-            className="w-5 h-5"
+        {/* 3. LOGIKA TOMBOL DINAMIS DENGAN ANIMASI TIMBUL */}
+        {quantity > 0 ? (
+          // Tampilan jika barang SUDAH di keranjang (- QTY +)
+          <div className="absolute bottom-3 right-3 bg-[#4A3B32] text-white rounded-2xl flex items-center shadow-lg opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out overflow-hidden border border-[#322822]">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                removeFromCart(product.id);
+              }}
+              // active:scale-125 membuat tombol membesar sebentar (timbul) saat diklik
+              className="w-9 h-10 flex items-center justify-center hover:bg-[#C17A3E] transition-all duration-100 font-bold text-lg active:scale-125 active:bg-[#a86832] z-10"
+            >
+              —
+            </button>
+            <span className="w-6 text-center font-extrabold text-sm select-none z-0">
+              {quantity}
+            </span>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                addToCart(product);
+              }}
+              // active:scale-125 membuat tombol membesar sebentar (timbul) saat diklik
+              className="w-9 h-10 flex items-center justify-center hover:bg-[#C17A3E] transition-all duration-100 font-bold text-lg active:scale-125 active:bg-[#a86832] z-10"
+            >
+              ＋
+            </button>
+          </div>
+        ) : (
+          // Tampilan jika barang BELUM di keranjang (Tombol Plus/Centang)
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdded}
+            // active:scale-95 memberikan efek memantul ringan
+            className={`absolute bottom-3 right-3 p-3.5 rounded-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-out shadow-lg flex items-center justify-center active:scale-95 ${
+              isAdded
+                ? "bg-green-500 text-white scale-110"
+                : "bg-[#4A3B32] text-white hover:bg-[#C17A3E]"
+            }`}
+            title="Tambah ke Keranjang"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-        </button>
+            {isAdded ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={3}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12.75l6 6 9-13.5"
+                />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Container Teks */}

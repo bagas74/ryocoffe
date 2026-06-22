@@ -10,8 +10,9 @@ interface CartItem extends Product {
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (product: Product) => void;
+  removeFromCart: (productId: string) => void; // <-- 1. Daftarkan fungsi baru di sini
   totalItems: number;
-  clearCart: () => void; // 1. Tambahkan deklarasi fungsi baru di sini
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -33,7 +34,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // 2. Buat fungsi untuk mengosongkan state keranjang
+  // 2. Implementasikan fungsi untuk mengurangi kuantitas atau menghapus item
+  const removeFromCart = (productId: string) => {
+    setCartItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.id === productId);
+
+      if (!existingItem) return prevItems;
+
+      if (existingItem.quantity === 1) {
+        // Jika sisa 1, hapus item dari array keranjang
+        return prevItems.filter((item) => item.id !== productId);
+      } else {
+        // Jika lebih dari 1, kurangi jumlahnya 1
+        return prevItems.map((item) =>
+          item.id === productId
+            ? { ...item, quantity: item.quantity - 1 }
+            : item,
+        );
+      }
+    });
+  };
+
   const clearCart = () => {
     setCartItems([]);
   };
@@ -44,9 +65,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    // 3. Jangan lupa masukkan clearCart ke dalam value Provider
+    // 3. Masukkan removeFromCart ke dalam nilai Provider
     <CartContext.Provider
-      value={{ cartItems, addToCart, totalItems, clearCart }}
+      value={{ cartItems, addToCart, removeFromCart, totalItems, clearCart }}
     >
       {children}
     </CartContext.Provider>

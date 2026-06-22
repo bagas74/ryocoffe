@@ -7,11 +7,13 @@ import { Product } from "@/data/products";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
-import Image from "next/image"; // <-- 1. Ini wajib ditambahkan
+import Image from "next/image";
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const { addToCart } = useCart();
+
+  // Pastikan cartItems dan removeFromCart di-import dari useCart
+  const { addToCart, cartItems, removeFromCart } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,10 @@ export default function ProductDetailPage() {
     minimumFractionDigits: 0,
   }).format(product.price);
 
+  // Cari tahu apakah produk ini sudah ada di keranjang
+  const cartItem = cartItems.find((item) => item.id === product.id);
+  const quantity = cartItem ? cartItem.quantity : 0;
+
   return (
     <div className="min-h-screen bg-[#FDF8F5] font-sans pb-20">
       <Navbar />
@@ -98,10 +104,8 @@ export default function ProductDetailPage() {
           Kembali ke Menu
         </Link>
 
-        {/* 2. INI PEMBUNGKUS YANG HILANG (Warna Putih & Flex Row) */}
         <div className="bg-white rounded-3xl shadow-sm border border-[#E8DCC4]/50 p-6 sm:p-8 md:p-12">
           <div className="flex flex-col md:flex-row gap-8 lg:gap-16 items-center md:items-start">
-            {/* Bagian Gambar Produk Kiri */}
             <div className="w-full md:w-1/2 flex-shrink-0">
               <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-stone-100 border border-gray-100 shadow-inner">
                 <Image
@@ -117,7 +121,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Informasi Detail Kanan */}
             <div className="w-full md:w-1/2 flex flex-col pt-2 md:pt-4">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#4A3B32] mb-3 leading-tight">
                 {product.name}
@@ -144,26 +147,58 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              <button
-                onClick={() => addToCart(product)}
-                className="w-full sm:w-auto mt-auto bg-[#C17A3E] hover:bg-[#a86832] text-white py-4 px-8 rounded-2xl font-bold text-lg transition-all shadow-lg flex justify-center items-center gap-3 active:scale-95"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className="w-6 h-6"
+              {/* LOGIKA TOMBOL DINAMIS DI HALAMAN DETAIL */}
+              {quantity > 0 ? (
+                <div className="mt-auto flex flex-col sm:flex-row items-center gap-4">
+                  <div className="flex items-center bg-stone-50 border border-stone-200 rounded-2xl h-14 shadow-inner w-full sm:w-auto overflow-hidden">
+                    <button
+                      onClick={() => removeFromCart(product.id)}
+                      // Animasi membesar sebentar (timbul)
+                      className="w-14 h-full flex items-center justify-center text-stone-600 hover:bg-stone-200 font-black text-xl transition-all duration-100 active:scale-125 active:bg-stone-300"
+                    >
+                      —
+                    </button>
+                    <span className="w-14 text-center text-lg font-extrabold text-[#4A3B32] select-none z-0">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => addToCart(product)}
+                      // Animasi membesar sebentar (timbul)
+                      className="w-14 h-full flex items-center justify-center text-stone-600 hover:bg-stone-200 font-black text-xl transition-all duration-100 active:scale-125 active:bg-stone-300"
+                    >
+                      ＋
+                    </button>
+                  </div>
+
+                  <Link
+                    href="/cart"
+                    className="w-full sm:w-auto bg-[#4A3B32] hover:bg-[#322822] text-white px-8 h-14 rounded-2xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    Lihat Keranjang
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={() => addToCart(product)}
+                  className="w-full sm:w-auto mt-auto bg-[#C17A3E] hover:bg-[#a86832] text-white py-4 px-8 rounded-2xl font-bold text-lg transition-all shadow-lg flex justify-center items-center gap-3 active:scale-95"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 4.5v15m7.5-7.5h-15"
-                  />
-                </svg>
-                Tambah ke Keranjang
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2.5}
+                    stroke="currentColor"
+                    className="w-6 h-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 4.5v15m7.5-7.5h-15"
+                    />
+                  </svg>
+                  Tambah ke Keranjang
+                </button>
+              )}
             </div>
           </div>
         </div>
