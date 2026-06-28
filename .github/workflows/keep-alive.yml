@@ -2,7 +2,7 @@ name: Keep Supabase Alive
 
 on:
   schedule:
-    # Menjalankan script setiap hari Senin dan Kamis pukul 00:00 UTC
+    # Menjalankan script setiap hari Senin dan Kamis pukul 00:00 UTC selama 3 hari sekali
     - cron: "0 0 * * 1,4"
 
   # Memungkinkan kita menekan tombol "Run" secara manual di GitHub
